@@ -54,13 +54,13 @@ class getPreviousViewSet(viewsets.ModelViewSet):
                 self.queryset.filter(room=request.GET.get("room"))
                 .exclude(desable=True)
                 .exclude(user__in=blacklist.values("blacklist"))
-                .order_by("-id")[:20]
+                .order_by("id")[:20]
             )
         else:
             query = (
                 self.queryset.filter(room=request.GET.get("room"))
                 .exclude(desable=True)
-                .order_by("-id")[:20]
+                .order_by("id")[:20]
             )
 
         serializer = self.serializer_class(
