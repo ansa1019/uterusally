@@ -206,8 +206,36 @@ def notify_update(sender, instance, **kwargs):
 def blacklist_update(sender, instance, created, **kwargs):
     channel_layer = get_channel_layer()
     if created:
-        # 聊天室 autoban
-        if instance.chat:
+        # autoban
+        if instance.post:
+            now = timezone.now()
+            before = now - timedelta(days=1)
+            bls = (
+                Blacklist.objects.filter(
+                    blacklist=instance.blacklist, created_at__range=[before, now]
+                )
+                .exclude(post__isnull=True)
+                .count()
+            )
+            bans = Blacklist.objects.filter(
+                blacklist=instance.blacklist,
+                created_at__range=[before, now],
+                post__isnull=False,
+                status__id=2,
+            ).count()
+            if bans > 0:
+                instance.status = Status.objects.get(id=6)
+            elif bls == 5:
+                instance.status = Status.objects.get(id=2)
+                Blacklist.objects.filter(
+                    blacklist=instance.blacklist,
+                    created_at__range=[before, now],
+                    post__isnull=False,
+                    status__id=1,
+                ).update(status=Status.objects.get(id=6))
+                ban = Ban.objects.create(blacklist=instance)
+                ban.save()
+        elif instance.chat:
             now = timezone.now()
             before = now - timedelta(days=1)
             bls = (
@@ -231,6 +259,34 @@ def blacklist_update(sender, instance, created, **kwargs):
                     blacklist=instance.blacklist,
                     created_at__range=[before, now],
                     chat__isnull=False,
+                    status__id=1,
+                ).update(status=Status.objects.get(id=6))
+                ban = Ban.objects.create(blacklist=instance)
+                ban.save()
+        else:
+            now = timezone.now()
+            before = now - timedelta(days=1)
+            bls = (
+                Blacklist.objects.filter(
+                    blacklist=instance.blacklist, created_at__range=[before, now]
+                )
+                .exclude(comment__isnull=True)
+                .count()
+            )
+            bans = Blacklist.objects.filter(
+                blacklist=instance.blacklist,
+                created_at__range=[before, now],
+                comment__isnull=False,
+                status__id=2,
+            ).count()
+            if bans > 0:
+                instance.status = Status.objects.get(id=6)
+            elif bls == 5:
+                instance.status = Status.objects.get(id=2)
+                Blacklist.objects.filter(
+                    blacklist=instance.blacklist,
+                    created_at__range=[before, now],
+                    comment__isnull=False,
                     status__id=1,
                 ).update(status=Status.objects.get(id=6))
                 ban = Ban.objects.create(blacklist=instance)
@@ -273,7 +329,6 @@ def blacklist_update(sender, instance, created, **kwargs):
 def ban_update(sender, instance, **kwargs):
     channel_layer = get_channel_layer()
     user = instance.blacklist.blacklist
-    print("123")
     queryset = Ban.objects.filter(
         Q(blacklist__blacklist=user)
         & (Q(end_time__gt=timezone.now()) | Q(end_time__isnull=True))
