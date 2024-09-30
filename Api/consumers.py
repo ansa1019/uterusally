@@ -45,7 +45,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         msg.save()
         if identity != "匿名":
             userProfile = profile.objects.get(user=self.user)
-            if not userProfile.user_image.url:
+            try:
+                user_image = userProfile.user_image.url
+            except:
                 user_image = static(userProfile.gender + ".png")
         else:
             user_image = static(userProfile.gender + ".png")
