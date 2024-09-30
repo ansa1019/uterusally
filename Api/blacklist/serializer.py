@@ -8,6 +8,12 @@ class StatusSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class BanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ban
+        fields = "__all__"
+
+
 class BlacklistSerializer(serializers.ModelSerializer):
     class Meta:
         model = Blacklist

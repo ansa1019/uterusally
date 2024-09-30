@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from django.db.models import Q
 from django.utils import timezone
 from asgiref.sync import async_to_sync
@@ -311,17 +312,36 @@ def blacklist_update(sender, instance, created, **kwargs):
         )
 
     # 依照blacklist新建或更改banlist
-    if instance.status.id in range(2, 5):
-        ban, created = Ban.objects.get_or_create(blacklist=instance)
-        if created:
-            ban.start_time = timezone.now()
-        if instance.status.id == 2:
-            ban.end_time = ban.start_time + timedelta(days=1)
-        elif instance.status.id == 3:
-            ban.end_time = ban.start_time + timedelta(days=15)
-        elif instance.status.id == 4:
-            ban.end_time = None
-        ban.save()
+    if instance.status.id in range(2, 6):
+        if instance.post:
+            pre = Ban.objects.filter(
+                Q(blacklist__blacklist=user)
+                & Q(end_time__isnull=True)
+                & Q(blacklist__post__isnull=False)
+            ).count()
+        elif instance.chat:
+            pre = Ban.objects.filter(
+                Q(blacklist__blacklist=user)
+                & Q(end_time__isnull=True)
+                & Q(blacklist__chat__isnull=False)
+            ).count()
+        else:
+            pre = Ban.objects.filter(
+                Q(blacklist__blacklist=user)
+                & Q(end_time__isnull=True)
+                & Q(blacklist__comment__isnull=False)
+            ).count()
+        if pre == 0:
+            ban, created = Ban.objects.get_or_create(blacklist=instance)
+            if created:
+                ban.start_time = timezone.now()
+            if instance.status.id == 2:
+                ban.end_time = ban.start_time + timedelta(days=1)
+            elif instance.status.id == 3:
+                ban.end_time = ban.start_time + timedelta(days=15)
+            else:
+                ban.end_time = None
+            ban.save()
     else:
         Ban.objects.filter(blacklist=instance.id).delete()
 
