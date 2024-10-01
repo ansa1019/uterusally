@@ -208,6 +208,7 @@ def notify_update(sender, instance, **kwargs):
 @receiver(post_save, sender=Blacklist)
 def blacklist_update(sender, instance, created, **kwargs):
     channel_layer = get_channel_layer()
+    user = instance.user
     if created:
         # autoban
         if instance.post:
@@ -227,7 +228,7 @@ def blacklist_update(sender, instance, created, **kwargs):
                 status__id=2,
             ).count()
             if bans > 0:
-                instance.status = Status.objects.get(id=6)
+                instance.status = Status.objects.get(id=7)
             elif bls == 5:
                 instance.status = Status.objects.get(id=2)
                 Blacklist.objects.filter(
@@ -235,7 +236,7 @@ def blacklist_update(sender, instance, created, **kwargs):
                     created_at__range=[before, now],
                     post__isnull=False,
                     status__id=1,
-                ).update(status=Status.objects.get(id=6))
+                ).update(status=Status.objects.get(id=7))
                 ban = Ban.objects.create(blacklist=instance)
                 ban.save()
         elif instance.chat:
@@ -255,7 +256,7 @@ def blacklist_update(sender, instance, created, **kwargs):
                 status__id=2,
             ).count()
             if bans > 0:
-                instance.status = Status.objects.get(id=6)
+                instance.status = Status.objects.get(id=7)
             elif bls == 5:
                 instance.status = Status.objects.get(id=2)
                 Blacklist.objects.filter(
@@ -263,7 +264,7 @@ def blacklist_update(sender, instance, created, **kwargs):
                     created_at__range=[before, now],
                     chat__isnull=False,
                     status__id=1,
-                ).update(status=Status.objects.get(id=6))
+                ).update(status=Status.objects.get(id=7))
                 ban = Ban.objects.create(blacklist=instance)
                 ban.save()
         else:
@@ -283,7 +284,7 @@ def blacklist_update(sender, instance, created, **kwargs):
                 status__id=2,
             ).count()
             if bans > 0:
-                instance.status = Status.objects.get(id=6)
+                instance.status = Status.objects.get(id=7)
             elif bls == 5:
                 instance.status = Status.objects.get(id=2)
                 Blacklist.objects.filter(
@@ -291,12 +292,11 @@ def blacklist_update(sender, instance, created, **kwargs):
                     created_at__range=[before, now],
                     comment__isnull=False,
                     status__id=1,
-                ).update(status=Status.objects.get(id=6))
+                ).update(status=Status.objects.get(id=7))
                 ban = Ban.objects.create(blacklist=instance)
                 ban.save()
 
         # 即時新增使用者blacklist
-        user = instance.user
         queryset = Blacklist.objects.filter(user=user)
         blacklist = {"article": [], "comment": [], "chat": []}
         for query in queryset:
