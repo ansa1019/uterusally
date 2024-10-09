@@ -400,33 +400,34 @@ def ban_update(sender, instance, created, **kwargs):
     # 依照banlist新建或更改notifications
     try:
         print("banlist->notifications")
-        if created:
-            bl = instance.blacklist
-            if bl.post:
-                category = "文章"
-                cont = bl.post.title
-            elif bl.comment:
-                category = "留言"
-                cont = bl.comment.body
-            else:
-                category = "聊天室"
-                cont = bl.chat.message
-            content = (
-                "因您於 "
-                + bl.created_at.strftime("%Y-%m-%d %H:%M:%S")
-                + " 發布的"
-                + category
-                + "『"
-                + cont
-                + "』被人檢舉 "
-                + bl.reason
-                + "! 此帳號將進行『"
-                + bl.status.name
-                + "』的處置。如有疑慮，請洽客服。"
-            )
-            notify, created = Notifications.objects.get_or_create(
-                user=bl.blacklist, blacklist=bl, content=content, read=False
-            )
-            notify.save()
+        bl = instance.blacklist
+        if bl.post:
+            category = "文章"
+            cont = bl.post.title
+        elif bl.comment:
+            category = "留言"
+            cont = bl.comment.body
+        else:
+            category = "聊天室"
+            cont = bl.chat.message
+        content = (
+            "因您於 "
+            + bl.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            + " 發布的"
+            + category
+            + "『"
+            + cont
+            + "』被人檢舉 "
+            + bl.reason
+            + "! 此帳號將進行『"
+            + bl.status.name
+            + "』的處置。如有疑慮，請洽客服。"
+        )
+        notify, created = Notifications.objects.get_or_create(
+            user=bl.blacklist, blacklist=bl
+        )
+        notify["content"] = content
+        notify["read"] = False
+        notify.save()
     except Exception as e:
         print(e)
