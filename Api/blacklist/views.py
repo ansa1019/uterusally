@@ -69,7 +69,7 @@ class blacklistViewSet(viewsets.ModelViewSet):
                 user = User.objects.get(id=query.user.id)
                 bluser = User.objects.get(id=query.blacklist.id)
 
-                if query.post is not None:
+                if query.post:
                     category = "文章"
                     content = query.post.title
                     url = (
@@ -77,7 +77,7 @@ class blacklistViewSet(viewsets.ModelViewSet):
                         if "聊療" in query.post.category.all()[0].name
                         else "knowledge_article/" + str(query.post.id) + "/"
                     )
-                elif query.comment is not None:
+                elif query.comment:
                     category = "留言"
                     content = query.comment.body
                     url = (
@@ -123,11 +123,11 @@ class getBlacklistViewSet(viewsets.ModelViewSet):
         blacklist = {"article": [], "comment": [], "chat": []}
 
         for query in queryset:
-            if query.post is not None:
+            if query.post:
                 blacklist["article"].append(query.post.id)
-            elif query.comment is not None:
+            elif query.comment:
                 blacklist["comment"].append(query.comment.id)
-            elif query.chat is not None:
+            elif query.chat:
                 blacklist["chat"].append(query.chat.id)
         return Response(blacklist)
 
@@ -150,10 +150,10 @@ class getBanlistViewSet(viewsets.ModelViewSet):
                 if bl.status == 5:
                     res = {"article": False, "comment": False, "chat": False}
                     break
-                elif bl.post is not None:
+                elif bl.post:
                     res["article"] = [bl.status.name, query.start_time]
-                elif bl.comment is not None:
+                elif bl.comment:
                     res["comment"] = [bl.status.name, query.start_time]
-                elif bl.chat is not None:
+                elif bl.chat:
                     res["chat"] = [bl.status.name, query.start_time]
         return Response(res)

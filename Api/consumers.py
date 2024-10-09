@@ -242,35 +242,7 @@ def blacklist_update(sender, instance, created, **kwargs):
                     ).update(status=Status.objects.get(id=7))
                     ban = Ban.objects.create(blacklist=instance)
                     ban.save()
-            elif instance.chat:
-                now = timezone.now()
-                before = now - timedelta(days=1)
-                bls = (
-                    Blacklist.objects.filter(
-                        blacklist=instance.blacklist, created_at__range=[before, now]
-                    )
-                    .exclude(chat__isnull=True)
-                    .count()
-                )
-                bans = Blacklist.objects.filter(
-                    blacklist=instance.blacklist,
-                    created_at__range=[before, now],
-                    chat__isnull=False,
-                    status__id=2,
-                ).count()
-                if bans > 0:
-                    instance.status = Status.objects.get(id=7)
-                elif bls == 5:
-                    instance.status = Status.objects.get(id=2)
-                    Blacklist.objects.filter(
-                        blacklist=instance.blacklist,
-                        created_at__range=[before, now],
-                        chat__isnull=False,
-                        status__id=1,
-                    ).update(status=Status.objects.get(id=7))
-                    ban = Ban.objects.create(blacklist=instance)
-                    ban.save()
-            else:
+            elif instance.comment:
                 now = timezone.now()
                 before = now - timedelta(days=1)
                 bls = (
@@ -294,6 +266,34 @@ def blacklist_update(sender, instance, created, **kwargs):
                         blacklist=instance.blacklist,
                         created_at__range=[before, now],
                         comment__isnull=False,
+                        status__id=1,
+                    ).update(status=Status.objects.get(id=7))
+                    ban = Ban.objects.create(blacklist=instance)
+                    ban.save()
+            else:
+                now = timezone.now()
+                before = now - timedelta(days=1)
+                bls = (
+                    Blacklist.objects.filter(
+                        blacklist=instance.blacklist, created_at__range=[before, now]
+                    )
+                    .exclude(chat__isnull=True)
+                    .count()
+                )
+                bans = Blacklist.objects.filter(
+                    blacklist=instance.blacklist,
+                    created_at__range=[before, now],
+                    chat__isnull=False,
+                    status__id=2,
+                ).count()
+                if bans > 0:
+                    instance.status = Status.objects.get(id=7)
+                elif bls == 5:
+                    instance.status = Status.objects.get(id=2)
+                    Blacklist.objects.filter(
+                        blacklist=instance.blacklist,
+                        created_at__range=[before, now],
+                        chat__isnull=False,
                         status__id=1,
                     ).update(status=Status.objects.get(id=7))
                     ban = Ban.objects.create(blacklist=instance)
@@ -330,17 +330,17 @@ def blacklist_update(sender, instance, created, **kwargs):
                     & Q(end_time__isnull=True)
                     & Q(blacklist__post__isnull=False)
                 ).count()
-            elif instance.chat:
+            elif instance.comment:
                 pre = Ban.objects.filter(
                     Q(blacklist__blacklist=user)
                     & Q(end_time__isnull=True)
-                    & Q(blacklist__chat__isnull=False)
+                    & Q(blacklist__comment__isnull=False)
                 ).count()
             else:
                 pre = Ban.objects.filter(
                     Q(blacklist__blacklist=user)
                     & Q(end_time__isnull=True)
-                    & Q(blacklist__comment__isnull=False)
+                    & Q(blacklist__chat__isnull=False)
                 ).count()
             if pre == 0:
                 ban, created = Ban.objects.get_or_create(blacklist=instance)
@@ -355,6 +355,38 @@ def blacklist_update(sender, instance, created, **kwargs):
                 ban.save()
         else:
             Ban.objects.filter(blacklist=instance.id).delete()
+    except Exception as e:
+        print(e)
+
+    # 依照blacklist新建或更改notifications
+    try:
+        print("blacklist->notifications")
+        if instance.status.id in range(2, 6):
+            if instance.post:
+                category = "文章"
+                cont = instance.post.title
+            elif instance.comment:
+                category = "留言"
+                cont = instance.comment.body
+            else:
+                category = "聊天室"
+                cont = instance.chat.message
+            content = (
+                "因您於 "
+                + instance.created_at
+                + " 發布的"
+                + +"『"
+                + cont
+                + "』被人檢舉 "
+                + instance.reason
+                + "! 此帳號將進行『"
+                + instance.status
+                + "』的處置。如有疑慮，請洽客服。"
+            )
+            notify, created = Notifications.objects.get_or_create(
+                user=instance.blacklist, blacklist=instance, content=content, read=False
+            )
+            notify.save()
     except Exception as e:
         print(e)
 
