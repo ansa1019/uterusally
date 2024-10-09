@@ -354,7 +354,9 @@ def blacklist_update(sender, instance, created, **kwargs):
                     ban.end_time = None
                 ban.save()
         else:
-            Ban.objects.filter(blacklist=instance.id).delete()
+            ban = Ban.objects.get(blacklist=instance.id)
+            ban.end_time = timezone.now()
+            ban.save()
     except Exception as e:
         print(e)
 
@@ -423,14 +425,14 @@ def ban_update(sender, instance, created, **kwargs):
             + bl.status.name
             + "』的處置。如有疑慮，請洽客服。"
         )
-        if created:
-            Notifications.objects.create(
-                user=bl.blacklist, blacklist=bl, content=content
-            )
-        else:
+        try:
             notify = Notifications.objects.get(user=bl.blacklist, blacklist=bl)
             notify.content = content
             notify.read = False
             notify.save()
+        except Notifications.DoesNotExist:
+            Notifications.objects.create(
+                user=bl.blacklist, blacklist=bl, content=content
+            )
     except Exception as e:
         print(e)
