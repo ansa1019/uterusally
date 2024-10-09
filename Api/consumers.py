@@ -191,112 +191,118 @@ class UserConsumer(AsyncWebsocketConsumer):
 
 @receiver(post_save, sender=Notifications)
 def notify_update(sender, instance, **kwargs):
-    channel_layer = get_channel_layer()
-    res = Notifications.objects.filter(user=instance.user, read=False).order_by(
-        "-created_at"
-    )
-    serializer = notificationsSerializer(res, many=True)
     try:
+        channel_layer = get_channel_layer()
+        res = Notifications.objects.filter(user=instance.user, read=False).order_by(
+            "-created_at"
+        )
+        serializer = notificationsSerializer(res, many=True)
         async_to_sync(channel_layer.group_send)(
             "user_" + str(instance.user.id),
             {"type": "notification_save", "notifications": serializer.data},
         )
+        print("user_" + str(instance.user.id), serializer.data)
     except Exception as e:
         print(e)
 
 
 @receiver(post_save, sender=Blacklist)
 def blacklist_update(sender, instance, created, **kwargs):
-    channel_layer = get_channel_layer()
-    user = instance.user
-    if created:
-        # autoban
-        if instance.post:
-            now = timezone.now()
-            before = now - timedelta(days=1)
-            bls = (
-                Blacklist.objects.filter(
-                    blacklist=instance.blacklist, created_at__range=[before, now]
+    try:
+        print("blacklist_update")
+        channel_layer = get_channel_layer()
+        user = instance.user
+        if created:
+            # autoban
+            if instance.post:
+                now = timezone.now()
+                before = now - timedelta(days=1)
+                bls = (
+                    Blacklist.objects.filter(
+                        blacklist=instance.blacklist, created_at__range=[before, now]
+                    )
+                    .exclude(post__isnull=True)
+                    .count()
                 )
-                .exclude(post__isnull=True)
-                .count()
-            )
-            bans = Blacklist.objects.filter(
-                blacklist=instance.blacklist,
-                created_at__range=[before, now],
-                post__isnull=False,
-                status__id=2,
-            ).count()
-            if bans > 0:
-                instance.status = Status.objects.get(id=7)
-            elif bls == 5:
-                instance.status = Status.objects.get(id=2)
-                Blacklist.objects.filter(
+                bans = Blacklist.objects.filter(
                     blacklist=instance.blacklist,
                     created_at__range=[before, now],
                     post__isnull=False,
-                    status__id=1,
-                ).update(status=Status.objects.get(id=7))
-                ban = Ban.objects.create(blacklist=instance)
-                ban.save()
-        elif instance.chat:
-            now = timezone.now()
-            before = now - timedelta(days=1)
-            bls = (
-                Blacklist.objects.filter(
-                    blacklist=instance.blacklist, created_at__range=[before, now]
+                    status__id=2,
+                ).count()
+                if bans > 0:
+                    instance.status = Status.objects.get(id=7)
+                elif bls == 5:
+                    instance.status = Status.objects.get(id=2)
+                    Blacklist.objects.filter(
+                        blacklist=instance.blacklist,
+                        created_at__range=[before, now],
+                        post__isnull=False,
+                        status__id=1,
+                    ).update(status=Status.objects.get(id=7))
+                    ban = Ban.objects.create(blacklist=instance)
+                    ban.save()
+            elif instance.chat:
+                now = timezone.now()
+                before = now - timedelta(days=1)
+                bls = (
+                    Blacklist.objects.filter(
+                        blacklist=instance.blacklist, created_at__range=[before, now]
+                    )
+                    .exclude(chat__isnull=True)
+                    .count()
                 )
-                .exclude(chat__isnull=True)
-                .count()
-            )
-            bans = Blacklist.objects.filter(
-                blacklist=instance.blacklist,
-                created_at__range=[before, now],
-                chat__isnull=False,
-                status__id=2,
-            ).count()
-            if bans > 0:
-                instance.status = Status.objects.get(id=7)
-            elif bls == 5:
-                instance.status = Status.objects.get(id=2)
-                Blacklist.objects.filter(
+                bans = Blacklist.objects.filter(
                     blacklist=instance.blacklist,
                     created_at__range=[before, now],
                     chat__isnull=False,
-                    status__id=1,
-                ).update(status=Status.objects.get(id=7))
-                ban = Ban.objects.create(blacklist=instance)
-                ban.save()
-        else:
-            now = timezone.now()
-            before = now - timedelta(days=1)
-            bls = (
-                Blacklist.objects.filter(
-                    blacklist=instance.blacklist, created_at__range=[before, now]
+                    status__id=2,
+                ).count()
+                if bans > 0:
+                    instance.status = Status.objects.get(id=7)
+                elif bls == 5:
+                    instance.status = Status.objects.get(id=2)
+                    Blacklist.objects.filter(
+                        blacklist=instance.blacklist,
+                        created_at__range=[before, now],
+                        chat__isnull=False,
+                        status__id=1,
+                    ).update(status=Status.objects.get(id=7))
+                    ban = Ban.objects.create(blacklist=instance)
+                    ban.save()
+            else:
+                now = timezone.now()
+                before = now - timedelta(days=1)
+                bls = (
+                    Blacklist.objects.filter(
+                        blacklist=instance.blacklist, created_at__range=[before, now]
+                    )
+                    .exclude(comment__isnull=True)
+                    .count()
                 )
-                .exclude(comment__isnull=True)
-                .count()
-            )
-            bans = Blacklist.objects.filter(
-                blacklist=instance.blacklist,
-                created_at__range=[before, now],
-                comment__isnull=False,
-                status__id=2,
-            ).count()
-            if bans > 0:
-                instance.status = Status.objects.get(id=7)
-            elif bls == 5:
-                instance.status = Status.objects.get(id=2)
-                Blacklist.objects.filter(
+                bans = Blacklist.objects.filter(
                     blacklist=instance.blacklist,
                     created_at__range=[before, now],
                     comment__isnull=False,
-                    status__id=1,
-                ).update(status=Status.objects.get(id=7))
-                ban = Ban.objects.create(blacklist=instance)
-                ban.save()
+                    status__id=2,
+                ).count()
+                if bans > 0:
+                    instance.status = Status.objects.get(id=7)
+                elif bls == 5:
+                    instance.status = Status.objects.get(id=2)
+                    Blacklist.objects.filter(
+                        blacklist=instance.blacklist,
+                        created_at__range=[before, now],
+                        comment__isnull=False,
+                        status__id=1,
+                    ).update(status=Status.objects.get(id=7))
+                    ban = Ban.objects.create(blacklist=instance)
+                    ban.save()
+    except Exception as e:
+        print(e)
 
-        # 即時新增使用者blacklist
+    # 即時新增使用者blacklist
+    try:
         queryset = Blacklist.objects.filter(user=user)
         blacklist = {"article": [], "comment": [], "chat": []}
         for query in queryset:
@@ -310,71 +316,83 @@ def blacklist_update(sender, instance, created, **kwargs):
             "user_" + str(user.id),
             {"type": "blacklist_save", "blacklist": blacklist},
         )
+        print("user_" + str(user.id), blacklist)
+    except Exception as e:
+        print(e)
 
     # 依照blacklist新建或更改banlist
-    if instance.status.id in range(2, 6):
-        if instance.post:
-            pre = Ban.objects.filter(
-                Q(blacklist__blacklist=user)
-                & Q(end_time__isnull=True)
-                & Q(blacklist__post__isnull=False)
-            ).count()
-        elif instance.chat:
-            pre = Ban.objects.filter(
-                Q(blacklist__blacklist=user)
-                & Q(end_time__isnull=True)
-                & Q(blacklist__chat__isnull=False)
-            ).count()
-        else:
-            pre = Ban.objects.filter(
-                Q(blacklist__blacklist=user)
-                & Q(end_time__isnull=True)
-                & Q(blacklist__comment__isnull=False)
-            ).count()
-        if pre == 0:
-            ban, created = Ban.objects.get_or_create(blacklist=instance)
-            if created:
-                ban.start_time = timezone.now()
-            if instance.status.id == 2:
-                ban.end_time = ban.start_time + timedelta(days=1)
-            elif instance.status.id == 3:
-                ban.end_time = ban.start_time + timedelta(days=15)
+    try:
+        print("blacklist->banlist")
+        if instance.status.id in range(2, 6):
+            if instance.post:
+                pre = Ban.objects.filter(
+                    Q(blacklist__blacklist=user)
+                    & Q(end_time__isnull=True)
+                    & Q(blacklist__post__isnull=False)
+                ).count()
+            elif instance.chat:
+                pre = Ban.objects.filter(
+                    Q(blacklist__blacklist=user)
+                    & Q(end_time__isnull=True)
+                    & Q(blacklist__chat__isnull=False)
+                ).count()
             else:
-                ban.end_time = None
-            ban.save()
-    else:
-        Ban.objects.filter(blacklist=instance.id).delete()
+                pre = Ban.objects.filter(
+                    Q(blacklist__blacklist=user)
+                    & Q(end_time__isnull=True)
+                    & Q(blacklist__comment__isnull=False)
+                ).count()
+            if pre == 0:
+                ban, created = Ban.objects.get_or_create(blacklist=instance)
+                if created:
+                    ban.start_time = timezone.now()
+                if instance.status.id == 2:
+                    ban.end_time = ban.start_time + timedelta(days=1)
+                elif instance.status.id == 3:
+                    ban.end_time = ban.start_time + timedelta(days=15)
+                else:
+                    ban.end_time = None
+                ban.save()
+        else:
+            Ban.objects.filter(blacklist=instance.id).delete()
+    except Exception as e:
+        print(e)
 
 
 # 即時新增使用者banlist
 @receiver(post_save, sender=Ban)
 def ban_update(sender, instance, **kwargs):
-    channel_layer = get_channel_layer()
-    user = instance.blacklist.blacklist
-    queryset = Ban.objects.filter(
-        Q(blacklist__blacklist=user)
-        & (Q(end_time__gt=timezone.now()) | Q(end_time__isnull=True))
-    )
-    banlist = {"article": True, "comment": True, "chat": True}
-    if queryset.count() > 0:
-        for query in queryset:
-            bl = query.blacklist
-            if bl.post is not None:
-                banlist["article"] = [
-                    bl.status.name,
-                    query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
-                ]
-            elif bl.comment is not None:
-                banlist["comment"] = [
-                    bl.status.name,
-                    query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
-                ]
-            elif bl.chat is not None:
-                banlist["chat"] = [
-                    bl.status.name,
-                    query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
-                ]
-    async_to_sync(channel_layer.group_send)(
-        "user_" + str(user.id),
-        {"type": "banlist_save", "banlist": banlist},
-    )
+    try:
+        print("ban_update")
+        channel_layer = get_channel_layer()
+        user = instance.blacklist.blacklist
+        queryset = Ban.objects.filter(
+            Q(blacklist__blacklist=user)
+            & (Q(end_time__gt=timezone.now()) | Q(end_time__isnull=True))
+        )
+        banlist = {"article": True, "comment": True, "chat": True}
+        if queryset.count() > 0:
+            for query in queryset:
+                bl = query.blacklist
+                if bl.post is not None:
+                    banlist["article"] = [
+                        bl.status.name,
+                        query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    ]
+                elif bl.comment is not None:
+                    banlist["comment"] = [
+                        bl.status.name,
+                        query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    ]
+                elif bl.chat is not None:
+                    banlist["chat"] = [
+                        bl.status.name,
+                        query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    ]
+        async_to_sync(channel_layer.group_send)(
+            "user_" + str(user.id),
+            {"type": "banlist_save", "banlist": banlist},
+        )
+        print("user_" + str(user.id), banlist)
+    except Exception as e:
+        print(e)
