@@ -423,11 +423,14 @@ def ban_update(sender, instance, created, **kwargs):
             + bl.status.name
             + "』的處置。如有疑慮，請洽客服。"
         )
-        notify, created = Notifications.objects.get_or_create(
-            user=bl.blacklist, blacklist=bl
-        )
-        notify["content"] = content
-        notify["read"] = False
-        notify.save()
+        if created:
+            Notifications.objects.create(
+                user=bl.blacklist, blacklist=bl, content=content
+            )
+        else:
+            notify = Notifications.objects.get(user=bl.blacklist, blacklist=bl)
+            notify.content = content
+            notify.read = False
+            notify.save()
     except Exception as e:
         print(e)
