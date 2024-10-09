@@ -373,7 +373,7 @@ def blacklist_update(sender, instance, created, **kwargs):
                 cont = instance.chat.message
             content = (
                 "因您於 "
-                + instance.created_at
+                + instance.created_at.strftime("%Y-%m-%d %H:%M:%S")
                 + " 發布的"
                 + +"『"
                 + cont
