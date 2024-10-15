@@ -403,28 +403,27 @@ def ban_update(sender, instance, created, **kwargs):
     try:
         print("banlist->notifications")
         bl = instance.blacklist
-        if bl.post:
-            category = "文章"
-            cont = bl.post.title
-        elif bl.comment:
-            category = "留言"
-            cont = bl.comment.body
+        if bl.status.name == "禁言24小時":
+            if bl.post:
+                category = "您發布的文章"
+            elif bl.comment:
+                category = "您發布的留言"
+            else:
+                category = "您在聊天室的發言"
+            content = (
+                category
+                + "於短時間內收到多次檢舉，故系統於 "
+                + bl.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+                + " 起自動禁言24小時<br>我們將同步進行人工審核，若造成不便請見諒，謝謝"
+            )
         else:
-            category = "聊天室"
-            cont = bl.chat.message
-        content = (
-            "因您於 "
-            + bl.created_at.strftime("%Y-%m-%d %H:%M:%S")
-            + " 發布的"
-            + category
-            + "『"
-            + cont
-            + "』被人檢舉 "
-            + bl.reason
-            + "! 此帳號將進行『"
-            + bl.status.name
-            + "』的處置。如有疑慮，請洽客服。"
-        )
+            content = (
+                "經人工審核，因您之前的檢舉違反社群規範，故系統於 "
+                + bl.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+                + " 起"
+                + bl.status.name
+                + "<br>若有任何問題，請來信客服信箱，謝謝"
+            )
         try:
             notify = Notifications.objects.get(user=bl.blacklist, blacklist=bl)
             notify.content = content
