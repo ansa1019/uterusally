@@ -1,12 +1,8 @@
+import json
 from django.shortcuts import render
 from .models import point, gift, exchange, systemPoint
 from django.contrib.auth.models import User
-from .serializer import (
-    PointSerializer,
-    GiftSerializer,
-    exchangeProductSerializer,
-    systemPointSerializer,
-)
+from .serializer import *
 from django.db.models import Q
 from rest_framework import viewsets, status
 from rest_framework.response import Response
@@ -36,6 +32,7 @@ class pointView(viewsets.ModelViewSet):
     如果是就會跑到 if created: 這個條件，然後就會新增使用者點數資料，並且將點數加上去
     如果使用者已經有點數資料，就會跑到 else: 這個條件，然後就會將使用者點數資料的點數加上去
     """
+
     def create(self, request, *args, **kwargs):
         userPoint, created = point.objects.get_or_create(user=self.request.user)
         if created:
@@ -130,7 +127,7 @@ class giftView(viewsets.ModelViewSet):
 
 class exchangeProductView(viewsets.ModelViewSet):
     queryset = exchange.objects.all()
-    serializer_class = exchangeProductSerializer
+    serializer_class = exchangeSerializer
     """
     這邊是用來檢查使用者是否為匿名使用者，如果是匿名使用者就會回傳{"error": "user is anonymous"}
     如果使用者不是匿名使用者，就會回傳使用者的兌換商品資料，如同giftView
@@ -152,56 +149,74 @@ class exchangeProductView(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         from product.models import product
 
-        userPoint = point.objects.get(user=self.request.user)
-        product = product.objects.get(product_title=self.request.data["product"])
-        amount = int(self.request.data["amount"])
+        exchange_point = 0
+        products_text = ""
+        error = {"sold out": [], "not enough": []}
+        error_text = ""
+        for item in json.loads(self.request.data["products"]):
+            pro = product.objects.get(product_title=item["product"])
+            if pro.amount == 0:
+                error["sold out"].append(item["product"])
+            elif pro.amount < item["amount"]:
+                error["not enough"].append(
+                    {"product": item["product"], "amount": pro.amount}
+                )
+            else:
+                exchange_point += pro.product_point
+                products_text += item["product"] + "x" + str(item["amount"]) + "、"
+        if len(error["sold out"]) > 0:
+            for item in error["sold out"]:
+                error_text += item + "、"
+            error_text = error_text[:-1] + "已售罄！"
+        if len(error["not enough"]) > 0:
+            if error_text:
+                error_text += "\n"
+            for item in error["not enough"]:
+                error_text += (
+                    item["product"] + "的庫存剩餘" + str(item["amount"]) + "個、"
+                )
+            error_text = error_text[:-1] + "！"
+        if error_text:
+            return Response({"error": error_text}, status=status.HTTP_400_BAD_REQUEST)
 
-        if userPoint.point < int(product.product_point):
+        userPoint = point.objects.get(user=self.request.user)
+        if userPoint.point < exchange_point:
             return Response(
-                {"error": "not enough point"}, status=status.HTTP_400_BAD_REQUEST
+                {"error": "您的點數不夠支付！"}, status=status.HTTP_400_BAD_REQUEST
             )
         else:
-            if product.amount == 0:
-                return Response(
-                    {"error": "product is out of stock"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            b64code = (str(self.request.user.username) + products_text[:-1]).encode(
+                "utf-8"
+            ) + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S").encode("utf-8")
+            code = base64.b64encode(b64code).decode("utf-8")
 
+            exchange_obj = exchange.objects.create(
+                user=self.request.user,
+                exchage_token=code,
+            )
+            for item in json.loads(self.request.data["products"]):
+                pro = product.objects.get(product_title=item["product"])
+                pro = product.objects.get(product_title=item["product"])
+                pro.amount -= item["amount"]
+                pro.save()
+                exc = exchangeProducts.objects.create(
+                    exchange=exchange_obj,
+                    product=pro,
+                    amount=item["amount"],
+                    point=pro.product_point * item["amount"],
+                )
+            userPoint.point = userPoint.point - exchange_point
+            userPoint.save()
+            serializer = self.serializer_class(
+                exchange_obj, data=request.data, context={"request": request}
+            )
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
             else:
-                b64code = (
-                    str(self.request.user.username)
-                    + product.product_title
-                    + str(product.product_point)
-                ).encode("UTF-8") + datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ).encode(
-                    "UTF-8"
+                return Response(
+                    serializer.errors, status=status.HTTP_400_BAD_REQUEST
                 )
-                code = base64.b64encode(b64code).decode("utf-8")
-                exchange_obj = exchange.objects.create(
-                    user=self.request.user,
-                    product=product,
-                    point=product.product_point,
-                    exchage_token=code,
-                    created_at=datetime.datetime.now(),
-                    amount=amount,
-                )
-
-                serializer = self.serializer_class(exchange_obj, data=request.data)
-
-                if serializer.is_valid():
-                    userPoint.point = (
-                        userPoint.point - int(product.product_point) * amount
-                    )
-                    product.amount -= amount
-                    product.save()
-                    userPoint.save()
-                    serializer.save()
-                    return Response(serializer.data, status=status.HTTP_201_CREATED)
-                else:
-                    return Response(
-                        serializer.errors, status=status.HTTP_400_BAD_REQUEST
-                    )
 
 
 class systemPointView(viewsets.ModelViewSet):

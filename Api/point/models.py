@@ -38,16 +38,23 @@ class gift(models.Model):
 
 class exchange(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="userExchage")
-    product = models.ForeignKey(
-        product, on_delete=models.CASCADE, related_name="productExchage"
-    )
-    point = models.IntegerField(default=0)
-    amount = models.IntegerField(default=0)
     exchage_token = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True, auto_created=True)
 
     def __str__(self):
         return "User:" + self.user.username + "\t" + "Point:" + str(self.point)
+
+
+class exchangeProducts(models.Model):
+    exchange = models.ForeignKey(
+        exchange, on_delete=models.CASCADE, related_name="exchange"
+    )
+    product = models.ForeignKey(
+        product, on_delete=models.CASCADE, related_name="productExchage"
+    )
+    amount = models.IntegerField(default=0)
+    point = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True, auto_created=True)
 
 
 class systemPoint(models.Model):

@@ -33,4 +33,9 @@ urlpatterns = [
         ForgetPasswordViewSet.as_view({"post": "create"}),
         name="forget_password",
     ),
+    re_path(
+        r"update_password/(?P<username>\w+|[\w.%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]+)/$",
+        UpdatePasswordViewSet.as_view({"post": "create"}),
+        name="update_password",
+    ),
 ]

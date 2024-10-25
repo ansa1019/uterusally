@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.contrib.auth.models import User
 from rest_framework import viewsets
+from datetime import timedelta
+from django.utils import timezone
 from .serializer import *
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -46,10 +48,51 @@ class ForgetPasswordViewSet(viewsets.ModelViewSet):
     permission_classes = (AllowAny,)
 
     def create(self, request, username):
+        from userdetail.models import forgetPassword
+
         try:
             user = User.objects.get(username=username)
-            user.set_password(request.data["password"])
-            user.save()
+            record = forgetPassword.objects.create(
+                user=user, verification_code=request.data["verification_code"]
+            )
             return Response({"result": "success"})
-        except:
+        except Exception as e:
+            print(e)
             return Response({"result": "error"})
+
+
+class UpdatePasswordViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = (AllowAny,)
+
+    def create(self, request, username):
+        if self.request.user.is_anonymous:
+            from userdetail.models import forgetPassword
+
+            try:
+                now = timezone.now()
+                before = now - timedelta(minutes=5)
+                user = User.objects.get(username=username)
+                verification_code = request.data["verification_code"]
+                record = forgetPassword.objects.filter(
+                    user=user, created_at__range=[before, now]
+                ).order_by("-created_at")[0]
+                if verification_code == record.verification_code:
+                    user.set_password(request.data["password"])
+                    user.save()
+                    return Response({"result": "success"})
+                else:
+                    return Response({"result": "error", "error": "verification code"})
+            except Exception as e:
+                print(e)
+                return Response({"error": "error"})
+        else:
+            try:
+                user = User.objects.get(username=username)
+                user.set_password(request.data["password"])
+                user.save()
+                return Response({"result": "success"})
+            except Exception as e:
+                print(e)
+                return Response({"result": "error"})

@@ -105,22 +105,31 @@ class notificationsView(viewsets.ModelViewSet):
             except Exception as e:
                 print(e)
         elif "exchange" in request.data:
-            exc = exchange.objects.get(id=request.data["exchange"])
-            poi = point.objects.get(user=user)
-            try:
-                notify, created = Notifications.objects.get_or_create(
-                    user=user, exchange=exc
-                )
-                notify.content = (
-                    request.data["content"]
+            text = request.data["first_content"]
+            points = 0
+            exchanges = []
+            for item in request.data["products"]:
+                exc = exchange.objects.get(id=item["id"])
+                exchanges.append(exc)
+                points += exc.point
+                text += (
+                    request.data["products_content"]
                     .replace("#", str(exc.amount), 1)
                     .replace("#", exc.product.product_title, 1)
-                    .replace("#", str(exc.point), 1)
-                    .replace("#", str(poi.point), 1)
+                    + "、"
                 )
-                notify.created_at = timezone.now()
-                notify.read = False
-                notify.save()
+            poi = point.objects.get(user=user)
+            text = text[:-1] + request.data["point_content"].replace(
+                "#", str(points), 1
+            ).replace("#", str(poi.point), 1)
+            try:
+                notify, created = Notifications.objects.create(
+                    user=user,
+                    exchange=exchanges,
+                    content=text,
+                    created_at=timezone.now(),
+                    read=False,
+                )
             except Exception as e:
                 print(e)
         elif "blacklist" in request.data:

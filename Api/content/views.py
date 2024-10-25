@@ -371,7 +371,7 @@ class textEditorPostSerializerView(viewsets.ModelViewSet):
             serializer.save()
             return Response(serializer.data)
         else:
-            return Response(serializer.errors)
+            return Response(serializer.error_messages)
 
 
 class testTextEditorPostCommentSerializerView(viewsets.ModelViewSet):
