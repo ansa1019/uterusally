@@ -105,33 +105,35 @@ class notificationsView(viewsets.ModelViewSet):
             except Exception as e:
                 print(e)
         elif "exchange" in request.data:
-            text = request.data["first_content"]
-            points = 0
-            exchanges = []
-            for item in request.data["products"]:
-                exc = exchange.objects.get(id=item["id"])
-                exchanges.append(exc)
-                points += exc.point
-                text += (
-                    request.data["products_content"]
-                    .replace("#", str(exc.amount), 1)
-                    .replace("#", exc.product.product_title, 1)
-                    + "、"
-                )
-            poi = point.objects.get(user=user)
-            text = text[:-1] + request.data["point_content"].replace(
-                "#", str(points), 1
-            ).replace("#", str(poi.point), 1)
             try:
-                notify, created = Notifications.objects.create(
+                text = request.data["first_content"]
+                points = 0
+                exc = exchange.objects.get(id=request.data["exchange"])
+                for item in exchangeProducts.objects.filter(exchange=exc):
+                    points += item.point
+                    text += (
+                        request.data["products_content"]
+                        .replace("#", str(item.amount), 1)
+                        .replace("#", item.product.product_title, 1)
+                        + "、"
+                    )
+                poi = point.objects.get(user=user)
+                text = text[:-1] + request.data["point_content"].replace(
+                    "#", str(points), 1
+                ).replace("#", str(poi.point), 1)
+
+                notify = Notifications.objects.create(
                     user=user,
-                    exchange=exchanges,
+                    exchange=exc,
                     content=text,
                     created_at=timezone.now(),
                     read=False,
                 )
+                serializer = self.serializer_class(notify)
+                return Response(serializer.data)
             except Exception as e:
                 print(e)
+                return Response({"error": e})
         elif "blacklist" in request.data:
             blacklist = Blacklist.objects.get(id=request.data["blacklist"])
             try:
