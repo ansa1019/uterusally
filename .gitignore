@@ -1,0 +1,13 @@
+user_image
+textEditorPost_index_image
+__pycache__
+blacklist/__pycache__
+content/__pycache__
+notifications/__pycache__
+point/__pycache__
+point/migrations/__pycache__
+product/__pycache__
+product/migrations/__pycache__
+user_auth/__pycache__
+userdetail/__pycache__
+userdetail/migrations/__pycache__
