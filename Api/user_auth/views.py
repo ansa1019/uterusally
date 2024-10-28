@@ -62,12 +62,10 @@ class ForgetPasswordViewSet(viewsets.ModelViewSet):
 
 
 class UpdatePasswordViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
     permission_classes = (AllowAny,)
 
     def create(self, request, username):
-        if self.request.user.is_anonymous:
+        if "new_password" not in request.data:
             from userdetail.models import forgetPassword
 
             try:
@@ -90,9 +88,13 @@ class UpdatePasswordViewSet(viewsets.ModelViewSet):
         else:
             try:
                 user = User.objects.get(username=username)
-                user.set_password(request.data["password"])
-                user.save()
-                return Response({"result": "success"})
+                check = user.check_password(request.data["password"])
+                if check:
+                    user.set_password(request.data["new_password"])
+                    user.save()
+                    return Response({"result": "success"})
+                else:
+                    return Response({"result": "error"})
             except Exception as e:
                 print(e)
                 return Response({"result": "error"})

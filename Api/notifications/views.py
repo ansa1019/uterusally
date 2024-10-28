@@ -51,25 +51,26 @@ class notificationsView(viewsets.ModelViewSet):
                         notify.save()
                     except Exception as e:
                         print(e)
-            hashtags = post.hashtag.split(",")
-            for tag in hashtags:
-                try:
-                    subscribes = subscribeHashtag.objects.filter(hashtag=tag)
-                    for sub in subscribes:
-                        try:
-                            notify, created = Notifications.objects.get_or_create(
-                                user=sub.user, hashtag=sub
-                            )
-                            notify.content = request.data["content_hashtag"].replace(
-                                "#", tag, 1
-                            )
-                            notify.created_at = timezone.now()
-                            notify.read = False
-                            notify.save()
-                        except Exception as e:
-                            print(e)
-                except Exception as e:
-                    print(e)
+            if post.hashtag:
+                hashtags = post.hashtag.split(",")
+                for tag in hashtags:
+                    try:
+                        subscribes = subscribeHashtag.objects.filter(hashtag=tag)
+                        for sub in subscribes:
+                            try:
+                                notify, created = Notifications.objects.get_or_create(
+                                    user=sub.user, hashtag=sub
+                                )
+                                notify.content = request.data["content_hashtag"].replace(
+                                    "#", tag, 1
+                                )
+                                notify.created_at = timezone.now()
+                                notify.read = False
+                                notify.save()
+                            except Exception as e:
+                                print(e)
+                    except Exception as e:
+                        print(e)
         elif "gift" in request.data:
             gif = gift.objects.get(id=request.data["gift"])
             poi = point.objects.get(user=user)
