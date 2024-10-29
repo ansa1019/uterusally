@@ -376,17 +376,33 @@ def ban_update(sender, instance, created, **kwargs):
         if queryset.count() > 0:
             for query in queryset:
                 bl = query.blacklist
-                if bl.post is not None:
+                if bl.status.name == "停用帳號":
+                    banlist = {
+                        "article": [
+                            bl.status.name,
+                            query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                        ],
+                        "comment": [
+                            bl.status.name,
+                            query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                        ],
+                        "chat": [
+                            bl.status.name,
+                            query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                        ],
+                    }
+                    break
+                elif bl.post:
                     banlist["article"] = [
                         bl.status.name,
                         query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
                     ]
-                elif bl.comment is not None:
+                elif bl.comment:
                     banlist["comment"] = [
                         bl.status.name,
                         query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
                     ]
-                elif bl.chat is not None:
+                elif bl.chat:
                     banlist["chat"] = [
                         bl.status.name,
                         query.start_time.strftime("%Y-%m-%d %H:%M:%S"),

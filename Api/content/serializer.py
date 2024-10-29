@@ -65,11 +65,14 @@ class TextEditorPostCommentSerializer(serializers.ModelSerializer):
         from userprofile.models import profile
 
         author = instance.author
-
         try:
             if author:
                 userprofile = profile.objects.get(user=author)
-                if userprofile.user_image and hasattr(userprofile.user_image, "url"):
+                if (
+                    userprofile.user_image
+                    and hasattr(userprofile.user_image, "url")
+                    and instance.identity != "匿名"
+                ):
                     return {
                         "nickname": userprofile.nickname,
                         "image": userprofile.user_image.url,
