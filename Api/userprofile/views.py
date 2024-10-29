@@ -40,11 +40,11 @@ def check_task(queryset, u):
                 continue
             else:
                 if obj[k] != "":
+                    not_null[k] = False
+                else:
                     count += 1
                     not_null[k] = True
 
-                else:
-                    not_null[k] = False
 
     t = task.objects.get(title="個人資料")
 
