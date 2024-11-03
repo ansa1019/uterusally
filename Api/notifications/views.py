@@ -38,8 +38,8 @@ class notificationsView(viewsets.ModelViewSet):
                 print(e)
         elif "post" in request.data:
             post = TextEditorPost.objects.get(id=request.data["post"])
-            if "content_subscribe" in request.data:
-                subscribes = profile.objects.filter(subscribe__in=[user])
+            subscribes = profile.objects.filter(subscribe__contains=[user])
+            if subscribes:
                 for sub in subscribes:
                     try:
                         notify, created = Notifications.objects.get_or_create(

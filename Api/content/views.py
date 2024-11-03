@@ -214,7 +214,8 @@ class textEditorPostSerializerView(viewsets.ModelViewSet):
     serializer_class = TextEditorPostSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filter_fields = ["title", "author", "subcategory__category_name"]
-    search_fields = ["title", "author__username", "subcategory__name", "hashtag"]
+    search_fields = ["title", "author__username",
+                     "subcategory__name", "hashtag"]
 
     ordering_fields = ["created_at", "click"]
 
@@ -338,7 +339,7 @@ class textEditorPostSerializerView(viewsets.ModelViewSet):
             identity = request.data["identity"]
         except:
             identity = request.user.username
-        post_obj = TextEditorPost.objects.get(id=request.data["id"])
+        post_obj = TextEditorPost.objects.get(id=self.kwargs.get('pk'))
         post_obj.author = author
         try:
             post_obj.content = request.data["content"]
@@ -563,7 +564,7 @@ class officialPostTempSaveView(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors)
 
-    def update(self, request, *args, **kwargs):
+    def update(self, request, id, *args, **kwargs):
         from .models import subcategory
         from django.contrib.auth.models import User
 
@@ -581,7 +582,7 @@ class officialPostTempSaveView(viewsets.ModelViewSet):
             identity = request.data["identity"]
         except:
             identity = request.user.username
-        post_obj = TextEditorPost.objects.get(id=request.data["id"])
+        post_obj = TextEditorPost.objects.get(id=self.kwargs.get('pk'))
         post_obj.author = author
 
         try:
@@ -658,7 +659,8 @@ class getRecordView(viewsets.ModelViewSet):
         articles = TextEditorPost.objects.all()
         records = {}
         for article in articles:
-            rec = record.objects.filter(article=article).exclude(end__isnull=True)
+            rec = record.objects.filter(
+                article=article).exclude(end__isnull=True)
             if rec:
                 time = rec.annotate(time=Avg(F("end") - F("start"))).values("time")[0][
                     "time"
