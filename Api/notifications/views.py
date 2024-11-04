@@ -38,7 +38,7 @@ class notificationsView(viewsets.ModelViewSet):
                 print(e)
         elif "post" in request.data:
             post = TextEditorPost.objects.get(id=request.data["post"])
-            subscribes = profile.objects.filter(subscribe__contains=[user])
+            subscribes = profile.objects.filter(subscribe__id__contains=user.id)
             if subscribes:
                 for sub in subscribes:
                     try:

@@ -192,16 +192,17 @@ class UserConsumer(AsyncWebsocketConsumer):
 @receiver(post_save, sender=Notifications)
 def notify_update(sender, instance, **kwargs):
     try:
-        channel_layer = get_channel_layer()
-        res = Notifications.objects.filter(user=instance.user, read=False).order_by(
-            "-created_at"
-        )
-        serializer = notificationsSerializer(res, many=True)
-        async_to_sync(channel_layer.group_send)(
-            "user_" + str(instance.user.id),
-            {"type": "notification_save", "notifications": serializer.data},
-        )
-        print("user_" + str(instance.user.id), serializer.data)
+        if instance.content != "test content":
+            channel_layer = get_channel_layer()
+            res = Notifications.objects.filter(user=instance.user, read=False).order_by(
+                "-created_at"
+            )
+            serializer = notificationsSerializer(res, many=True)
+            async_to_sync(channel_layer.group_send)(
+                "user_" + str(instance.user.id),
+                {"type": "notification_save", "notifications": serializer.data},
+            )
+            print("user_" + str(instance.user.id), serializer.data)
     except Exception as e:
         print(e)
 

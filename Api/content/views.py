@@ -1,3 +1,4 @@
+import random
 from rest_framework import viewsets
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -301,12 +302,16 @@ class textEditorPostSerializerView(viewsets.ModelViewSet):
             identity = request.data["identity"]
         except:
             identity = request.user.username
-
+        try:
+            index_image = request.data["index_image"]
+        except:
+            index_image = "textEditorPost_index_image/img_"+str(random.randint(1, 5))+".png"
         post_obj = TextEditorPost.objects.create(
             author=author,
             identity=identity,
             content=request.data["content"],
             title=request.data["title"],
+            index_image=index_image,
             is_temporary=request.data["is_temporary"],
             is_official=request.data["is_official"],
         )
@@ -349,6 +354,10 @@ class textEditorPostSerializerView(viewsets.ModelViewSet):
             post_obj.title = request.data["title"]
         except:
             pass
+        try:
+            post_obj.index_image = request.data["index_image"]
+        except:
+            post_obj.index_image = "textEditorPost_index_image/img_"+str(random.randint(1, 5))+".png"
         post_obj.identity = identity
         try:
             post_obj.is_official = request.data["is_official"]
@@ -551,6 +560,7 @@ class officialPostTempSaveView(viewsets.ModelViewSet):
             identity=identity,
             content=request.data["content"],
             title=request.data["title"],
+            index_image=request.data["index_image"],
             is_temporary=request.data["is_temporary"],
             is_official=request.data["is_official"],
         )
@@ -591,6 +601,10 @@ class officialPostTempSaveView(viewsets.ModelViewSet):
             pass
         try:
             post_obj.title = request.data["title"]
+        except:
+            pass
+        try:
+            post_obj.index_image = request.data["index_image"]
         except:
             pass
         post_obj.identity = identity
