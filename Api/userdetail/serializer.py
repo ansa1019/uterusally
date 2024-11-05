@@ -1,3 +1,4 @@
+import random
 from rest_framework import serializers
 from content.serializer import TextEditorPostSerializer
 from .models import *
@@ -15,12 +16,12 @@ class postStoragedSerializer(serializers.ModelSerializer):
         return [str(post.id) for post in obj.post.all()]
 
     def get_image(self, obj):
+        request = self.context.get('request')
         post = obj.post.first()
         if post:
-            request = self.context.get('request')
             return request.build_absolute_uri(post.index_image.url)
         else:
-            return None
+            return request.build_absolute_uri("/textEditorPost_index_image/img_"+str(random.randint(1, 5))+".png")
 
 
 class postlistSerializer(serializers.ModelSerializer):

@@ -17,8 +17,8 @@ class postStoragedViewSet(viewsets.ModelViewSet):
         if postStoraged.objects.filter(
             user=request.user, storage_name=data["storage_name"]
         ).exists():
-            data = request.data
-            poststorage = postStoraged.objects.get(storage_name=data["storage_name"])
+            poststorage = postStoraged.objects.get(
+                user=request.user, storage_name=data["storage_name"])
             post_id = data["post_id"]
             p = TextEditorPost.objects.get(id=post_id)
             count = postStoraged.objects.filter(post=p).count()
