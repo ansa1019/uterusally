@@ -431,7 +431,7 @@ def ban_update(sender, instance, created, **kwargs):
                 category
                 + "於短時間內收到多次檢舉，故系統於 "
                 + bl.updated_at.strftime("%Y-%m-%d %H:%M:%S")
-                + " 起自動禁言24小時<br>我們將同步進行人工審核，若造成不便請見諒，謝謝"
+                + " 起自動禁言24小時。我們將同步進行人工審核，若造成不便請見諒，謝謝"
             )
         else:
             content = (
@@ -439,7 +439,7 @@ def ban_update(sender, instance, created, **kwargs):
                 + bl.updated_at.strftime("%Y-%m-%d %H:%M:%S")
                 + " 起"
                 + bl.status.name
-                + "<br>若有任何問題，請來信客服信箱，謝謝"
+                + "。若有任何問題，請來信客服信箱，謝謝"
             )
         try:
             notify = Notifications.objects.get(user=bl.blacklist, blacklist=bl)
