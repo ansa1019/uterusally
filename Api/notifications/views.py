@@ -38,17 +38,19 @@ class notificationsView(viewsets.ModelViewSet):
                 print(e)
         elif "post" in request.data:
             post = TextEditorPost.objects.get(id=request.data["post"])
-            subscribes = profile.objects.filter(subscribe__id__contains=user.id)
+            subscribes = profile.objects.get(user=post.author).subscribe.all()
+            ids = []
             if subscribes:
                 for sub in subscribes:
                     try:
-                        notify, created = Notifications.objects.get_or_create(
-                            user=sub.user, author=post.author
+                        no, created = Notifications.objects.get_or_create(
+                            user=sub, author=post.author
                         )
-                        notify.content = request.data["content_subscribe"]
-                        notify.created_at = timezone.now()
-                        notify.read = False
-                        notify.save()
+                        no.content = request.data["content_subscribe"]
+                        no.created_at = timezone.now()
+                        no.read = False
+                        no.save()
+                        ids.append(no.id)
                     except Exception as e:
                         print(e)
             if post.hashtag:
@@ -58,19 +60,21 @@ class notificationsView(viewsets.ModelViewSet):
                         subscribes = subscribeHashtag.objects.filter(hashtag=tag)
                         for sub in subscribes:
                             try:
-                                notify, created = Notifications.objects.get_or_create(
+                                no, created = Notifications.objects.get_or_create(
                                     user=sub.user, hashtag=sub
                                 )
-                                notify.content = request.data["content_hashtag"].replace(
+                                no.content = request.data["content_hashtag"].replace(
                                     "#", tag, 1
                                 )
-                                notify.created_at = timezone.now()
-                                notify.read = False
-                                notify.save()
+                                no.created_at = timezone.now()
+                                no.read = False
+                                no.save()
+                                ids.append(no.id)
                             except Exception as e:
                                 print(e)
                     except Exception as e:
                         print(e)
+            notify = Notifications.objects.filter(id__in=ids)
         elif "gift" in request.data:
             gif = gift.objects.get(id=request.data["gift"])
             poi = point.objects.get(user=user)
@@ -161,9 +165,7 @@ class notificationsView(viewsets.ModelViewSet):
         #         notify.save()
         #     except Exception as e:
         #         print(e)
-        serializer = self.serializer_class(
-            notify, data=request.data, context={"request": request}
-        )
+        serializer = self.serializer_class(notify, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

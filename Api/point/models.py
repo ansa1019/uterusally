@@ -42,7 +42,7 @@ class exchange(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, auto_created=True)
 
     def __str__(self):
-        return "User:" + self.user.username + "\t" + "Point:" + str(self.point)
+        return "User:" + self.user.username + "\t"
 
 
 class exchangeProducts(models.Model):

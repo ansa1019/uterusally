@@ -14,27 +14,27 @@ class notificationsSerializer(serializers.ModelSerializer):
     def get_url(self, instance):
         if instance.author:
             nickname = profile.objects.get(user=instance.author).nickname
-            return "author_article_list/" + nickname + "/-created_at"
+            return "/author_article_list/" + nickname + "/-created_at"
         elif instance.hashtag:
-            return "searchArticle/" + str(instance.hashtag.hashtag)[1:] + "/-created_at"
+            return "/searchArticle/" + str(instance.hashtag.hashtag)[1:] + "/-created_at"
         elif instance.post:
             if instance.post.is_official:
-                return "knowledge_article/" + str(instance.post.id)
+                return "/knowledge_article/" + str(instance.post.id)
             else:
-                return "TreatmentArticleGet/" + str(instance.post.id)
+                return "/TreatmentArticleGet/" + str(instance.post.id)
         elif instance.gift:
             if instance.gift.giver == instance.user:
-                return "point_use_record"
+                return "/point_use_record"
             else:
-                return "point_get_record"
+                return "/point_get_record"
         elif instance.exchange:
-            return "point_use_record"
+            return "/point_use_record"
         elif instance.systemPoint:
-            return "point_get_record"
+            return "/point_get_record"
         elif instance.blacklist:
-            return "notifications"
+            return "/notifications"
         elif instance.product:
-            return "point_exchange"
+            return "/point_exchange"
 
     def get_action(self, instance):
         if instance.author:

@@ -305,7 +305,7 @@ class textEditorPostSerializerView(viewsets.ModelViewSet):
         try:
             index_image = request.data["index_image"]
         except:
-            index_image = "textEditorPost_index_image/img_"+str(random.randint(1, 5))+".png"
+            index_image = "textEditorPost_index_image/img_"+str(random.randint(1, 4))+".png"
         post_obj = TextEditorPost.objects.create(
             author=author,
             identity=identity,
@@ -357,7 +357,7 @@ class textEditorPostSerializerView(viewsets.ModelViewSet):
         try:
             post_obj.index_image = request.data["index_image"]
         except:
-            post_obj.index_image = "textEditorPost_index_image/img_"+str(random.randint(1, 5))+".png"
+            post_obj.index_image = "textEditorPost_index_image/img_"+str(random.randint(1, 4))+".png"
         post_obj.identity = identity
         try:
             post_obj.is_official = request.data["is_official"]
@@ -574,7 +574,7 @@ class officialPostTempSaveView(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors)
 
-    def update(self, request, id, *args, **kwargs):
+    def update(self, request, *args, **kwargs):
         from .models import subcategory
         from django.contrib.auth.models import User
 

@@ -157,6 +157,11 @@ class UserConsumer(AsyncWebsocketConsumer):
                 "user_" + str(self.user.id), self.channel_name
             )
             print("user_" + str(self.user.id), " joined")
+
+            notifications, blacklist, banlist = await update_data(self.user)
+            await self.send(text_data=json.dumps({"notifications": notifications}))
+            await self.send(text_data=json.dumps({"blacklist": blacklist}))
+            await self.send(text_data=json.dumps({"banlist": banlist}))
         else:
             await self.close()
 
@@ -189,10 +194,71 @@ class UserConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({"banlist": banlist}))
 
 
+@database_sync_to_async
+def update_data(user):
+    # 更新notification
+    queryset = Notifications.objects.filter(user=user, read=False).order_by(
+        "-created_at"
+    )
+    notifications = notificationsSerializer(queryset, many=True).data
+    # 更新blacklist
+    queryset = Blacklist.objects.filter(user=user)
+    blacklist = {"article": [], "comment": [], "chat": []}
+    for query in queryset:
+        if query.post is not None:
+            blacklist["article"].append(query.post.id)
+        elif query.comment is not None:
+            blacklist["comment"].append(query.comment.id)
+        elif query.chat is not None:
+            blacklist["chat"].append(query.chat.id)
+    # 更新banlist
+    queryset = Ban.objects.filter(
+        Q(blacklist__blacklist=user)
+        & (Q(end_time__gt=timezone.now()) | Q(end_time__isnull=True))
+    )
+    banlist = {"article": True, "comment": True, "chat": True}
+    if queryset.count() > 0:
+        for query in queryset:
+            bl = query.blacklist
+            if bl.status.name == "停用帳號":
+                banlist = {
+                    "article": [
+                        bl.status.name,
+                        query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    ],
+                    "comment": [
+                        bl.status.name,
+                        query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    ],
+                    "chat": [
+                        bl.status.name,
+                        query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    ],
+                }
+                break
+            elif bl.post:
+                banlist["article"] = [
+                    bl.status.name,
+                    query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                ]
+            elif bl.comment:
+                banlist["comment"] = [
+                    bl.status.name,
+                    query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                ]
+            elif bl.chat:
+                banlist["chat"] = [
+                    bl.status.name,
+                    query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                ]
+    return notifications, blacklist, banlist
+
+
 @receiver(post_save, sender=Notifications)
 def notify_update(sender, instance, **kwargs):
     try:
-        if instance.content != "test content":
+        # if instance.content != "test content":
+            print("notify_update")
             channel_layer = get_channel_layer()
             res = Notifications.objects.filter(user=instance.user, read=False).order_by(
                 "-created_at"
@@ -304,6 +370,7 @@ def blacklist_update(sender, instance, created, **kwargs):
 
     # 即時新增使用者blacklist
     try:
+        print("user blacklist")
         queryset = Blacklist.objects.filter(user=user)
         blacklist = {"article": [], "comment": [], "chat": []}
         for query in queryset:
