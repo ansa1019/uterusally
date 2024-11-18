@@ -258,17 +258,17 @@ def update_data(user):
 def notify_update(sender, instance, **kwargs):
     try:
         # if instance.content != "test content":
-            print("notify_update")
-            channel_layer = get_channel_layer()
-            res = Notifications.objects.filter(user=instance.user, read=False).order_by(
-                "-created_at"
-            )
-            serializer = notificationsSerializer(res, many=True)
-            async_to_sync(channel_layer.group_send)(
-                "user_" + str(instance.user.id),
-                {"type": "notification_save", "notifications": serializer.data},
-            )
-            print("user_" + str(instance.user.id), serializer.data)
+        print("notify_update")
+        channel_layer = get_channel_layer()
+        res = Notifications.objects.filter(user=instance.user, read=False).order_by(
+            "-created_at"
+        )
+        serializer = notificationsSerializer(res, many=True)
+        async_to_sync(channel_layer.group_send)(
+            "user_" + str(instance.user.id),
+            {"type": "notification_save", "notifications": serializer.data},
+        )
+        print("user_" + str(instance.user.id), serializer.data)
     except Exception as e:
         print(e)
 
@@ -394,21 +394,21 @@ def blacklist_update(sender, instance, created, **kwargs):
         if instance.status.id in range(2, 6):
             if instance.post:
                 pre = Ban.objects.filter(
-                    Q(blacklist__blacklist=user)
-                    & Q(end_time__isnull=True)
-                    & Q(blacklist__post__isnull=False)
+                    blacklist__blacklist=user,
+                    end_time__isnull=True,
+                    blacklist__post__isnull=False,
                 ).count()
             elif instance.comment:
                 pre = Ban.objects.filter(
-                    Q(blacklist__blacklist=user)
-                    & Q(end_time__isnull=True)
-                    & Q(blacklist__comment__isnull=False)
+                    blacklist__blacklist=user,
+                    end_time__isnull=True,
+                    blacklist__comment__isnull=False,
                 ).count()
             else:
                 pre = Ban.objects.filter(
-                    Q(blacklist__blacklist=user)
-                    & Q(end_time__isnull=True)
-                    & Q(blacklist__chat__isnull=False)
+                    blacklist__blacklist=user,
+                    end_time__isnull=True,
+                    blacklist__chat__isnull=False,
                 ).count()
             if pre == 0:
                 ban, created = Ban.objects.get_or_create(blacklist=instance)
@@ -444,7 +444,7 @@ def ban_update(sender, instance, created, **kwargs):
         if queryset.count() > 0:
             for query in queryset:
                 bl = query.blacklist
-                if bl.status.name == "停用帳號":
+                if bl.status.id == 5:
                     banlist = {
                         "article": [
                             bl.status.name,
@@ -487,7 +487,7 @@ def ban_update(sender, instance, created, **kwargs):
     try:
         print("banlist->notifications")
         bl = instance.blacklist
-        if bl.status.name == "禁言24小時":
+        if bl.status.id == 2:
             if bl.post:
                 category = "您發布的文章"
             elif bl.comment:
@@ -500,22 +500,45 @@ def ban_update(sender, instance, created, **kwargs):
                 + bl.updated_at.strftime("%Y-%m-%d %H:%M:%S")
                 + " 起自動禁言24小時。我們將同步進行人工審核，若造成不便請見諒，謝謝"
             )
-        else:
+        elif 2 < bl.status.id < 6:
+            if bl.post:
+                category = "文章"
+            elif bl.comment:
+                category = "留言"
+            else:
+                category = "在聊天室的發言"
             content = (
-                "經人工審核，因您之前的檢舉違反社群規範，故系統於 "
+                "經人工審核，因您之前的"
+                + category
+                + "違反社群規範，故系統於 "
                 + bl.updated_at.strftime("%Y-%m-%d %H:%M:%S")
                 + " 起"
                 + bl.status.name
                 + "。若有任何問題，請來信客服信箱，謝謝"
             )
-        try:
-            notify = Notifications.objects.get(user=bl.blacklist, blacklist=bl)
-            notify.content = content
-            notify.read = False
-            notify.save()
-        except Notifications.DoesNotExist:
-            Notifications.objects.create(
-                user=bl.blacklist, blacklist=bl, content=content
-            )
+        pre = Blacklist.objects.filter(blacklist=user, status_id=5).exclude(id=bl.id).count()
+        if pre == 0:
+            if bl.post:
+                pre = Blacklist.objects.filter(
+                    blacklist=user, status_id=4, post__isnull=False
+                ).exclude(id=bl.id).count()
+            elif bl.comment:
+                pre = Blacklist.objects.filter(
+                    blacklist=user, status_id=4, comment__isnull=False
+                ).exclude(id=bl.id).count()
+            else:
+                pre = Blacklist.objects.filter(
+                    blacklist=user, status_id=4, chat__isnull=False
+                ).exclude(id=bl.id).count()
+        if 1 < bl.status.id < 6 and pre == 0:
+            try:
+                notify = Notifications.objects.get(user=bl.blacklist, blacklist=bl)
+                notify.content = content
+                notify.read = False
+                notify.save()
+            except Notifications.DoesNotExist:
+                Notifications.objects.create(
+                    user=bl.blacklist, blacklist=bl, content=content
+                )
     except Exception as e:
         print(e)
