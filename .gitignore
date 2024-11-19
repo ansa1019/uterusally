@@ -1,2 +1,3 @@
-user_image
-textEditorPost_index_image
+api/user_image
+api/textEditorPost_index_image/image_*.png
+api/cnf/*
