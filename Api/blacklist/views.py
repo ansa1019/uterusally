@@ -148,16 +148,22 @@ class getBanlistViewSet(viewsets.ModelViewSet):
             for query in queryset:
                 bl = query.blacklist
                 if bl.status.name == "停用帳號":
+                    if bl.post:
+                        cate = "article"
+                    elif bl.comment:
+                        cate = "comment"
+                    elif bl.chat:
+                        cate = "chat"
                     res = {
-                        "article": [bl.status.name, query.start_time],
-                        "comment": [bl.status.name, query.start_time],
-                        "chat": [bl.status.name, query.start_time],
+                        "article": [bl.status.name, query.start_time, cate],
+                        "comment": [bl.status.name, query.start_time, cate],
+                        "chat": [bl.status.name, query.start_time, cate],
                     }
                     break
                 elif bl.post:
-                    res["article"] = [bl.status.name, query.start_time]
+                    res["article"] = [bl.status.name, query.start_time, "article"]
                 elif bl.comment:
-                    res["comment"] = [bl.status.name, query.start_time]
+                    res["comment"] = [bl.status.name, query.start_time, "comment"]
                 elif bl.chat:
-                    res["chat"] = [bl.status.name, query.start_time]
+                    res["chat"] = [bl.status.name, query.start_time, "chat"]
         return Response(res)

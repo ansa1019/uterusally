@@ -221,18 +221,27 @@ def update_data(user):
         for query in queryset:
             bl = query.blacklist
             if bl.status.name == "停用帳號":
+                if bl.post:
+                    cate = "article"
+                elif bl.comment:
+                    cate = "comment"
+                elif bl.chat:
+                    cate = "chat"
                 banlist = {
                     "article": [
                         bl.status.name,
                         query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                        cate,
                     ],
                     "comment": [
                         bl.status.name,
                         query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                        cate,
                     ],
                     "chat": [
                         bl.status.name,
                         query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                        cate,
                     ],
                 }
                 break
@@ -240,16 +249,19 @@ def update_data(user):
                 banlist["article"] = [
                     bl.status.name,
                     query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "article",
                 ]
             elif bl.comment:
                 banlist["comment"] = [
                     bl.status.name,
                     query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "comment",
                 ]
             elif bl.chat:
                 banlist["chat"] = [
                     bl.status.name,
                     query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "chat",
                 ]
     return notifications, blacklist, banlist
 
@@ -444,19 +456,28 @@ def ban_update(sender, instance, created, **kwargs):
         if queryset.count() > 0:
             for query in queryset:
                 bl = query.blacklist
-                if bl.status.id == 5:
+                if bl.status.name == "停用帳號":
+                    if bl.post:
+                        cate = "article"
+                    elif bl.comment:
+                        cate = "comment"
+                    elif bl.chat:
+                        cate = "chat"
                     banlist = {
                         "article": [
                             bl.status.name,
                             query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                            cate,
                         ],
                         "comment": [
                             bl.status.name,
                             query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                            cate,
                         ],
                         "chat": [
                             bl.status.name,
                             query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                            cate,
                         ],
                     }
                     break
@@ -464,16 +485,19 @@ def ban_update(sender, instance, created, **kwargs):
                     banlist["article"] = [
                         bl.status.name,
                         query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "article",
                     ]
                 elif bl.comment:
                     banlist["comment"] = [
                         bl.status.name,
                         query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "comment",
                     ]
                 elif bl.chat:
                     banlist["chat"] = [
                         bl.status.name,
                         query.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "chat",
                     ]
         async_to_sync(channel_layer.group_send)(
             "user_" + str(user.id),
@@ -487,7 +511,7 @@ def ban_update(sender, instance, created, **kwargs):
     try:
         print("banlist->notifications")
         bl = instance.blacklist
-        if bl.status.id == 2:
+        if bl.status.name == "禁言24小時":
             if bl.post:
                 category = "您發布的文章"
             elif bl.comment:
@@ -502,13 +526,13 @@ def ban_update(sender, instance, created, **kwargs):
             )
         elif 2 < bl.status.id < 6:
             if bl.post:
-                category = "文章"
+                category = "的文章"
             elif bl.comment:
-                category = "留言"
+                category = "的留言"
             else:
                 category = "在聊天室的發言"
             content = (
-                "經人工審核，因您之前的"
+                "經人工審核，因您之前"
                 + category
                 + "違反社群規範，故系統於 "
                 + bl.updated_at.strftime("%Y-%m-%d %H:%M:%S")
@@ -516,20 +540,36 @@ def ban_update(sender, instance, created, **kwargs):
                 + bl.status.name
                 + "。若有任何問題，請來信客服信箱，謝謝"
             )
-        pre = Blacklist.objects.filter(blacklist=user, status_id=5).exclude(id=bl.id).count()
+        pre = (
+            Blacklist.objects.filter(blacklist=user, status_id=5)
+            .exclude(id=bl.id)
+            .count()
+        )
         if pre == 0:
             if bl.post:
-                pre = Blacklist.objects.filter(
-                    blacklist=user, status_id=4, post__isnull=False
-                ).exclude(id=bl.id).count()
+                pre = (
+                    Blacklist.objects.filter(
+                        blacklist=user, status_id=4, post__isnull=False
+                    )
+                    .exclude(id=bl.id)
+                    .count()
+                )
             elif bl.comment:
-                pre = Blacklist.objects.filter(
-                    blacklist=user, status_id=4, comment__isnull=False
-                ).exclude(id=bl.id).count()
+                pre = (
+                    Blacklist.objects.filter(
+                        blacklist=user, status_id=4, comment__isnull=False
+                    )
+                    .exclude(id=bl.id)
+                    .count()
+                )
             else:
-                pre = Blacklist.objects.filter(
-                    blacklist=user, status_id=4, chat__isnull=False
-                ).exclude(id=bl.id).count()
+                pre = (
+                    Blacklist.objects.filter(
+                        blacklist=user, status_id=4, chat__isnull=False
+                    )
+                    .exclude(id=bl.id)
+                    .count()
+                )
         if 1 < bl.status.id < 6 and pre == 0:
             try:
                 notify = Notifications.objects.get(user=bl.blacklist, blacklist=bl)
