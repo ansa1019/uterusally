@@ -39,9 +39,13 @@ def check_task(queryset, u):
             if k in no_need:
                 continue
             else:
-                if obj[k] != "":
+                # obj[k] is not " " or
+                if obj[k] is not None:
+                    print(type(obj[k]))
                     not_null[k] = False
                 else:
+                    print(type(obj[k]))
+                    print("True")
                     count += 1
                     not_null[k] = True
 

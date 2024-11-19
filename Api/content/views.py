@@ -393,7 +393,7 @@ class testTextEditorPostCommentSerializerView(viewsets.ModelViewSet):
 
     def post(self, request, *args, **kwargs):
         user = request.user
-
+        dt = task.objects.get(type="DAILY", title="每日回覆")
         udt = taskRecord.objects.get(user=request.user, task=dt)
         if udt.is_done:
             pass
@@ -405,7 +405,7 @@ class testTextEditorPostCommentSerializerView(viewsets.ModelViewSet):
                 udt.is_done = True
                 udt.save()
 
-        et = task.objects.get(type="EVENT", title="每日回覆")
+        et = task.objects.get(type="EVENT", title="活動回覆")
         uet = taskRecord.objects.get(user=request.user, task=et)
         if uet.is_done:
             pass
@@ -413,7 +413,7 @@ class testTextEditorPostCommentSerializerView(viewsets.ModelViewSet):
             progress = uet.progress + 1
             uet.progress = progress
             uet.save()
-            if uet.progress == dt.progress:
+            if uet.progress == et.progress:
                 uet.is_done = True
                 uet.save()
 
