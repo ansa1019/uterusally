@@ -141,18 +141,55 @@ class PostMetadataSerializer(serializers.ModelSerializer):
         model = TextEditorPost
         fields = ["like", "share", "click", "element"]
 
+    def task_checker(self, type_of_task):
+        if type_of_task == "like":
+            type_of_task = "按讚"
+        elif type_of_task == "share":
+            type_of_task = "分享"
+        try:
+            dt = task.objects.get(type="DAILY", title="每日" + type_of_task)
+            udt = taskRecord.objects.get(user=self.context["request"].user, task=dt)
+            if udt.is_done:
+                pass
+            else:
+                progress = udt.progress + 1
+                udt.progress = progress
+                udt.save()
+                if udt.progress == dt.progress:
+                    udt.is_done = True
+                    udt.save()
+        except:
+            print("DAILY task not found")
+        try:
+            et = task.objects.get(type="EVENT", title="活動" + type_of_task)
+            uet = taskRecord.objects.get(user=self.context["request"].user, task=et)
+            if uet.is_done:
+                pass
+            else:
+                progress = uet.progress + 1
+                uet.progress = progress
+                uet.save()
+                if uet.progress == et.progress:
+                    uet.is_done = True
+                    uet.save()
+        except:
+            print("EVENT task not found")
+            pass
+
     def update(self, instance, validated_data):
         element = validated_data.pop("element")
-
+        from task.models import taskRecord
         match element:
             case "like":
                 if instance.like.filter(id=self.context["request"].user.id).exists():
                     instance.like.remove(self.context["request"].user)
                 else:
                     instance.like.add(self.context["request"].user)
+                    self.task_checker("like")
             case "share":
                 if instance.share.filter(id=self.context["request"].user.id).exists():
                     instance.share.remove(self.context["request"].user)
+                    self.task_checker("share")
                 else:
                     instance.share.add(self.context["request"].user)
             case "click":
