@@ -46,21 +46,20 @@ class getPreviousViewSet(viewsets.ModelViewSet):
     serializer_class = previousChatSerializer
 
     def list(self, request, *args, **kwargs):
-        blacklist = Blacklist.objects.filter(user=self.request.user).exclude(
-            chat__isnull=True
-        )
+        blacklist = Blacklist.objects.filter(
+            user=self.request.user, chat__isnull=False)
         if blacklist != []:
             query = (
                 self.queryset.filter(room=request.GET.get("room"))
                 .exclude(desable=True)
                 .exclude(user__in=blacklist.values("blacklist"))
-                .order_by("id")[:20]
+                .order_by("-id")[:20]
             )
         else:
             query = (
                 self.queryset.filter(room=request.GET.get("room"))
                 .exclude(desable=True)
-                .order_by("id")[:20]
+                .order_by("-id")[:20]
             )
 
         serializer = self.serializer_class(
