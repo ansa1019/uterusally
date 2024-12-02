@@ -305,17 +305,18 @@ class textEditorPostSerializerView(viewsets.ModelViewSet):
         try:
             index_image = request.data["index_image"]
         except:
-            index_image = "textEditorPost_index_image/img_"+str(random.randint(1, 4))+".png"
+            index_image = "textEditorPost_index_image/img_" + \
+                str(random.randint(1, 4))+".png"
         post_obj = TextEditorPost.objects.create(
             author=author,
             identity=identity,
             content=request.data["content"],
             title=request.data["title"],
-            index_image=index_image,
             is_temporary=request.data["is_temporary"],
             is_official=request.data["is_official"],
         )
         post_obj.category.add(cate)
+        post_obj.index_image = index_image
         serializer = self.serializer_class(
             post_obj, data=request.data, context={"request": request}
         )
@@ -357,7 +358,7 @@ class textEditorPostSerializerView(viewsets.ModelViewSet):
         try:
             post_obj.index_image = request.data["index_image"]
         except:
-            post_obj.index_image = "textEditorPost_index_image/img_"+str(random.randint(1, 4))+".png"
+            pass
         post_obj.identity = identity
         try:
             post_obj.is_official = request.data["is_official"]
