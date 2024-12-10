@@ -155,11 +155,17 @@ class PostMetadataSerializer(serializers.ModelSerializer):
             if udt.is_done:
                 pass
             else:
+
                 progress = udt.progress + 1
                 udt.progress = progress
                 udt.save()
                 if udt.progress == dt.progress:
+                    from point.models import point
+                    p = point.objects.get(user=self.context["request"].user)
+                    p.point += dt.point
+
                     udt.is_done = True
+                    p.save()
                     udt.save()
         except:
             print("DAILY task not found")
@@ -175,7 +181,12 @@ class PostMetadataSerializer(serializers.ModelSerializer):
                 uet.progress = progress
                 uet.save()
                 if uet.progress == et.progress:
+                    from point.models import point
+                    p = point.objects.get(user=self.context["request"].user)
+                    p.point += et.point
+
                     uet.is_done = True
+                    p.save()
                     uet.save()
         except:
             print("EVENT task not found")
