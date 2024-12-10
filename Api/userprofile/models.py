@@ -77,6 +77,16 @@ class subPersonalCalendar(models.Model):
         return "使用者名稱:\t" + self.calendar.user.username + "\t類型:\t" + self.calendar.type
 
 
+class personal_menstrual(models.Model):
+    calendar = models.ForeignKey(personal_calendar, null=True, blank=True, on_delete=models.CASCADE)
+    start_date = models.DateField(blank=True, null=True) # 月經開始日期
+    end_date = models.DateField(blank=True, null=True) # 月經結束日期
+    next_date = models.DateField(blank=True, null=True) # 預測下次開始日期
+
+    def __str__(self):
+        return "使用者名稱:\t" + self.calendar.user.username + "\t類型:\t" + self.calendar.type
+
+
 class subscribeTopic(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     topic = models.ManyToManyField(category, related_name="topic", blank=True)

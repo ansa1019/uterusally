@@ -1,7 +1,5 @@
 import os
-from django.shortcuts import render
 from rest_framework import viewsets
-from rest_framework import status
 from rest_framework.response import Response
 from content.models import category
 from .models import *
@@ -12,7 +10,8 @@ from .filter.userprofile_filter import personalCalendarFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter, SearchFilter
 from django.core.exceptions import ValidationError
-from django.db.models import Sum, Count
+from django.db.models import Count
+from datetime import datetime, timedelta
 
 
 def check_task(queryset, u):
@@ -48,7 +47,6 @@ def check_task(queryset, u):
                     print("True")
                     count += 1
                     not_null[k] = True
-
 
     t = task.objects.get(title="個人資料")
 
@@ -163,12 +161,32 @@ class personalCalendarViewSet(viewsets.ModelViewSet):
     serializer_class = personalCalendarSerializer
     filter_class = personalCalendarFilter
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    # permission_classes = [OwnProfilePermission]
+    # permission_classes = [OwnProfilePermission]+
+
+    def create(self, request, *args, **kwargs):
+        post_obj = personal_calendar.objects.create(
+            user=request.user,
+            type=request.data["type"],
+            cycle=request.data["cycle"],
+            date=request.data["date"],
+            cycle_days=request.data["cycle_days"],
+        )
+        if request.data["menstrual"]:
+            end_date = datetime.strptime(request.data["record_date"], "%Y-%m-%d") + timedelta(days=10)
+            personal_menstrual.objects.create(
+                calendar=post_obj, start_date=request.data["record_date"], end_date=end_date, next_date=request.data["next_date"])
+        serializer = self.serializer_class(
+            post_obj, data=request.data, context={"request": request}
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
 
     def list(self, request, *args, **kwargs):
-        u = User.objects.get(username=request.user)
         queryset = self.filter_queryset(self.get_queryset())
-        queryset = queryset.filter(user=u)
+        queryset = queryset.filter(user=request.user)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -232,6 +250,17 @@ class subPersonalCalendarViewSet(viewsets.ModelViewSet):
         # except:
         #     response = {'status': 'no calendar'}
         #     return Response(response)
+
+
+class menstrualViewSet(viewsets.ModelViewSet):
+    queryset = personal_menstrual.objects.all()
+    serializer_class = personal_menstrualSerializer
+
+    def list(self, request, *args, **kwargs):
+        queryset = personal_menstrual.objects.filter(
+            calendar__user=request.user).order_by("-start_date", "-id")
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class getUserSubscribeViewSet(viewsets.ModelViewSet):
