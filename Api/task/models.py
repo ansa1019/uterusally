@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from content.models import TextEditorPost
 # Create your models here.
 
 TYPE_CHOICES = (
@@ -24,6 +25,7 @@ class task(models.Model):
     progress = models.PositiveIntegerField(default=0, null=True, blank=True,)
     deadline = models.DateTimeField(null=True, blank=True,)
     requirement = models.CharField(max_length=100, null=True, blank=True, default="")
+    specify_content = models.ForeignKey(TextEditorPost, on_delete=models.CASCADE, null=True, blank=True, )
     is_active = models.BooleanField(default=True, null=True, blank=True,)
 
     def __str__(self):
