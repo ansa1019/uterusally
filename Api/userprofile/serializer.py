@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import profile, bodyProfile, personal_calendar, subPersonalCalendar, subscribeTopic, subscribeHashtag
+from .models import *
 from django.contrib.auth.models import User
 
 
@@ -31,6 +31,14 @@ class subPersonalCalendarSerializer(serializers.ModelSerializer):
         return "calendar_notice"
 
 
+class personal_menstrualSerializer(serializers.ModelSerializer):
+    calendar = personalCalendarSerializer(read_only=True)
+    
+    class Meta:
+        model = personal_menstrual
+        fields = '__all__'
+
+        
 class recommendUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = profile
