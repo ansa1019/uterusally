@@ -163,27 +163,6 @@ class personalCalendarViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     # permission_classes = [OwnProfilePermission]+
 
-    def create(self, request, *args, **kwargs):
-        post_obj = personal_calendar.objects.create(
-            user=request.user,
-            type=request.data["type"],
-            cycle=request.data["cycle"],
-            date=request.data["date"],
-            cycle_days=request.data["cycle_days"],
-        )
-        if request.data["menstrual"]:
-            end_date = datetime.strptime(request.data["record_date"], "%Y-%m-%d") + timedelta(days=10)
-            personal_menstrual.objects.create(
-                calendar=post_obj, start_date=request.data["record_date"], end_date=end_date, next_date=request.data["next_date"])
-        serializer = self.serializer_class(
-            post_obj, data=request.data, context={"request": request}
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        else:
-            return Response(serializer.errors)
-
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         queryset = queryset.filter(user=request.user)
@@ -238,6 +217,46 @@ class subPersonalCalendarViewSet(viewsets.ModelViewSet):
     queryset = subPersonalCalendar.objects.all()
     serializer_class = subPersonalCalendarSerializer
     # permission_classes = [OwnProfilePermission]
+
+    def create(self, request, *args, **kwargs):
+        calendar = personal_calendar.objects.get(id=request.data["calendar_id"])
+        post_obj, created = subPersonalCalendar.objects.get_or_create(calendar=calendar)
+        print(request.data)
+        if request.data["menstrual"]:
+            if "last_date" in request.data:
+                start_date = datetime.strptime(request.data["last_date"], "%Y-%m-%d")
+                end_date = start_date + timedelta(days=10)
+                personal_menstrual.objects.create(
+                    calendar=calendar, start_date=start_date, end_date=end_date, next_date=request.data["next_date"])
+            start_date = start_date = datetime.strptime(request.data["start_date"], "%Y-%m-%d")
+            end_date = start_date + timedelta(days=10)
+            personal_menstrual.objects.create(
+                calendar=calendar, start_date=start_date, end_date=end_date, next_date=request.data["next_date"])
+        elif not created:
+            menstrual = personal_menstrual.objects.filter(calendar=calendar).first()
+            if "has_mc" in post_obj.dict and "no_mc" in request.data["dict"] and menstrual:
+                end_date = calendar.date + timedelta(days=10)
+                subcalendar = subPersonalCalendar.objects.filter(
+                    calendar__date__gt=calendar.date, calendar__date__lte=end_date, dict__has_key="has_mc").order_by("calendar__date").first()
+                if subcalendar:
+                    menstrual.calendar = subcalendar.calendar
+                    menstrual.start_date = subcalendar.calendar.date
+                    menstrual.end_date = menstrual.start_date + timedelta(days=10)
+                    menstrual.next_date = menstrual.start_date + \
+                        timedelta(days=subcalendar.calendar.cycle_days)
+                    menstrual.save()
+                else:
+                    menstrual.delete()
+        post_obj.dict = request.data["dict"]
+        post_obj.save()
+        serializer = self.serializer_class(
+            post_obj, data=request.data, context={"request": request}
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
 
     def list(self, request, *args, **kwargs):
         u = User.objects.get(username=request.user)
