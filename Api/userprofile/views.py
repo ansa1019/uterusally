@@ -220,30 +220,36 @@ class subPersonalCalendarViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         calendar = personal_calendar.objects.get(id=request.data["calendar_id"])
-        post_obj, created = subPersonalCalendar.objects.get_or_create(calendar=calendar)
-        if calendar.type=="menstruation":
+        post_obj = subPersonalCalendar.objects.create(calendar=calendar)
+        if calendar.type == "menstruation":
             if request.data["menstrual"]:
                 if "last_date" in request.data:
                     start_date = datetime.strptime(request.data["last_date"], "%Y-%m-%d")
-                    end_date = start_date + timedelta(days=10)
+                    end_date = start_date + timedelta(days=9)
                     personal_menstrual.objects.create(
                         calendar=calendar, start_date=start_date, end_date=end_date, next_date=request.data["next_date"])
                 start_date = start_date = datetime.strptime(request.data["start_date"], "%Y-%m-%d")
-                end_date = start_date + timedelta(days=10)
+                end_date = start_date + timedelta(days=9)
                 personal_menstrual.objects.create(
                     calendar=calendar, start_date=start_date, end_date=end_date, next_date=request.data["next_date"])
-            elif not created:
-                menstrual = personal_menstrual.objects.filter(calendar=calendar).first()
-                if "has_mc" in post_obj.dict and "no_mc" in request.data["dict"] and menstrual:
-                    end_date = calendar.date + timedelta(days=10)
-                    subcalendar = subPersonalCalendar.objects.filter(
-                        calendar__date__gt=calendar.date, calendar__date__lte=end_date, dict__has_key="has_mc").order_by("calendar__date").first()
+            else:
+                menstrual = personal_menstrual.objects.filter(start_date=datetime.strptime(
+                    request.data["dict"]["menstrualPeriod"], "%Y-%m-%d")).first()
+                if "no_mc" in request.data["dict"] and menstrual != None:
+                    start_date = datetime.strptime(
+                        request.data["dict"]["menstrualPeriod"], "%Y-%m-%d")
+                    end_date = start_date + timedelta(days=9)
+                    subcalendar = subPersonalCalendar.objects.filter(dict__has_keys=["menstrualPeriod", "has_mc"], dict__menstrualPeriod__gt=start_date.strftime(
+                        "%Y-%m-%d"), dict__menstrualPeriod__lte=end_date.strftime("%Y-%m-%d")).order_by("dict__menstrualPeriod", "-id").first()
                     if subcalendar:
+                        start_date = datetime.strptime(
+                            subcalendar.dict["menstrualPeriod"], "%Y-%m-%d")
+                        end_date = start_date + timedelta(days=9)
                         menstrual.calendar = subcalendar.calendar
-                        menstrual.start_date = subcalendar.calendar.date
-                        menstrual.end_date = menstrual.start_date + timedelta(days=10)
-                        menstrual.next_date = menstrual.start_date + \
-                            timedelta(days=subcalendar.calendar.cycle_days)
+                        menstrual.start_date = start_date
+                        menstrual.end_date = end_date
+                        menstrual.next_date = start_date + \
+                            timedelta(days=subcalendar.calendar.cycle)
                         menstrual.save()
                     else:
                         menstrual.delete()
